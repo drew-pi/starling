@@ -1,0 +1,305 @@
+{
+  "$ref": "#/definitions/ConversationThread",
+  "definitions": {
+    "Contact": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform": {
+          "type": "string",
+          "enum": [
+            "imessage",
+            "instagram"
+          ]
+        },
+        "handle": {
+          "type": "string",
+          "minLength": 1
+        },
+        "displayName": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "avatarUrl": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "uri"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "isSelf": {
+          "type": "boolean",
+          "default": false
+        },
+        "sourceIds": {
+          "type": "object",
+          "additionalProperties": {
+            "type": "string"
+          },
+          "description": "Opaque native identifiers, keyed by platform-defined name",
+          "default": {}
+        }
+      },
+      "required": [
+        "id",
+        "platform",
+        "handle"
+      ],
+      "additionalProperties": false
+    },
+    "Conversation": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform": {
+          "$ref": "#/definitions/Contact/properties/platform"
+        },
+        "kind": {
+          "type": "string",
+          "enum": [
+            "direct",
+            "group"
+          ]
+        },
+        "title": {
+          "type": [
+            "string",
+            "null"
+          ],
+          "default": null
+        },
+        "participantIds": {
+          "type": "array",
+          "items": {
+            "type": "string",
+            "minLength": 1
+          },
+          "minItems": 2
+        },
+        "createdAt": {
+          "anyOf": [
+            {
+              "type": "string",
+              "format": "date-time",
+              "description": "UTC instant, ISO-8601 encoded"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "UTC instant, ISO-8601 encoded",
+          "default": null
+        },
+        "sourceIds": {
+          "$ref": "#/definitions/Contact/properties/sourceIds",
+          "default": {},
+          "description": "Opaque native identifiers, keyed by platform-defined name"
+        }
+      },
+      "required": [
+        "id",
+        "platform",
+        "kind",
+        "participantIds"
+      ],
+      "additionalProperties": false
+    },
+    "Message": {
+      "type": "object",
+      "properties": {
+        "id": {
+          "type": "string",
+          "minLength": 1
+        },
+        "platform": {
+          "$ref": "#/definitions/Contact/properties/platform"
+        },
+        "conversationId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "senderId": {
+          "type": "string",
+          "minLength": 1
+        },
+        "content": {
+          "type": "object",
+          "properties": {
+            "text": {
+              "type": "string",
+              "default": ""
+            },
+            "attachments": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "properties": {
+                  "id": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "kind": {
+                    "type": "string",
+                    "enum": [
+                      "image",
+                      "video",
+                      "audio",
+                      "file",
+                      "link"
+                    ]
+                  },
+                  "url": {
+                    "type": "string",
+                    "minLength": 1
+                  },
+                  "mimeType": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "default": null
+                  },
+                  "fileName": {
+                    "type": [
+                      "string",
+                      "null"
+                    ],
+                    "default": null
+                  },
+                  "sizeBytes": {
+                    "anyOf": [
+                      {
+                        "type": "integer",
+                        "minimum": 0
+                      },
+                      {
+                        "type": "null"
+                      }
+                    ],
+                    "default": null
+                  }
+                },
+                "required": [
+                  "id",
+                  "kind",
+                  "url"
+                ],
+                "additionalProperties": false
+              },
+              "default": []
+            }
+          },
+          "additionalProperties": false
+        },
+        "sentAt": {
+          "$ref": "#/definitions/Conversation/properties/createdAt/anyOf/0"
+        },
+        "editedAt": {
+          "anyOf": [
+            {
+              "$ref": "#/definitions/Conversation/properties/createdAt/anyOf/0"
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "description": "UTC instant, ISO-8601 encoded",
+          "default": null
+        },
+        "replyToId": {
+          "anyOf": [
+            {
+              "type": "string",
+              "minLength": 1
+            },
+            {
+              "type": "null"
+            }
+          ],
+          "default": null
+        },
+        "reactions": {
+          "type": "array",
+          "items": {
+            "type": "object",
+            "properties": {
+              "actorId": {
+                "type": "string",
+                "minLength": 1
+              },
+              "emoji": {
+                "type": "string",
+                "minLength": 1
+              },
+              "reactedAt": {
+                "$ref": "#/definitions/Conversation/properties/createdAt/anyOf/0"
+              }
+            },
+            "required": [
+              "actorId",
+              "emoji",
+              "reactedAt"
+            ],
+            "additionalProperties": false
+          },
+          "default": []
+        },
+        "sourceIds": {
+          "$ref": "#/definitions/Contact/properties/sourceIds",
+          "default": {},
+          "description": "Opaque native identifiers, keyed by platform-defined name"
+        }
+      },
+      "required": [
+        "id",
+        "platform",
+        "conversationId",
+        "senderId",
+        "content",
+        "sentAt"
+      ],
+      "additionalProperties": false
+    },
+    "ConversationThread": {
+      "type": "object",
+      "properties": {
+        "conversation": {
+          "$ref": "#/definitions/Conversation"
+        },
+        "contacts": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Contact"
+          }
+        },
+        "messages": {
+          "type": "array",
+          "items": {
+            "$ref": "#/definitions/Message"
+          }
+        }
+      },
+      "required": [
+        "conversation",
+        "contacts",
+        "messages"
+      ],
+      "additionalProperties": false
+    }
+  },
+  "$schema": "http://json-schema.org/draft-07/schema#"
+}

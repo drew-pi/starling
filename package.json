@@ -1,0 +1,32 @@
+{
+  "name": "unified-message-model",
+  "version": "1.0.0",
+  "description": "A platform-agnostic message/conversation/contact data model spanning iMessage and Instagram.",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run",
+    "test:watch": "vitest",
+    "schema:gen": "tsx scripts/generate-json-schema.ts"
+  },
+  "keywords": [
+    "messaging",
+    "imessage",
+    "instagram",
+    "data-model",
+    "schema"
+  ],
+  "license": "MIT",
+  "dependencies": {
+    "zod": "^3.23.8"
+  },
+  "devDependencies": {
+    "tsx": "^4.23.1",
+    "typescript": "^5.5.4",
+    "vitest": "^2.0.5",
+    "zod-to-json-schema": "^3.25.2"
+  }
+}
