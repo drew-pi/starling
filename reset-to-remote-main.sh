@@ -1,4 +1,8 @@
 #!/usr/bin/env bash
+# Temporary test script for resetting this checkout to origin/main, removing
+# linked worktrees, and leaving only the expected minimal files in place. Do not
+# touch, modify, or copy this file to other worktrees; it exists only for this
+# temporary test flow.
 set -euo pipefail
 
 REMOTE="${REMOTE:-origin}"
@@ -6,17 +10,24 @@ BRANCH="${BRANCH:-main}"
 UPSTREAM="$REMOTE/$BRANCH"
 KEEP_A="ARCHITECTURE.md"
 KEEP_B="PROJECT.md"
+SCRIPT_NAME="$(basename "$0")"
+SCRIPT_DIR="$(cd "$(dirname "$0")" && pwd -P)"
 
 usage() {
   cat <<USAGE
 Usage: ./reset-to-remote-main.sh --yes
 
 Destructively resets this repository to $UPSTREAM, removes linked worktrees,
-cleans untracked files, and verifies only these files remain:
+cleans untracked files, and verifies only the Git metadata plus these files remain:
   - $KEEP_A
   - $KEEP_B
+  - $SCRIPT_NAME
 
 Override the target with REMOTE=<name> BRANCH=<name>.
+If Git metadata is missing or damaged, repair it first with:
+  git init
+  git remote add origin <repo-url>
+  git fetch origin main
 USAGE
 }
 
@@ -27,8 +38,21 @@ if [[ "${1:-}" != "--yes" ]]; then
   exit 2
 fi
 
+cd "$SCRIPT_DIR"
+
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  echo "This directory does not contain valid Git metadata." >&2
+  echo "Refusing to clean files because .git is missing or damaged." >&2
+  echo "Repair .git first, then rerun this script." >&2
+  exit 1
+fi
+
 repo_root="$(git rev-parse --show-toplevel)"
 cd "$repo_root"
+
+script_backup="$(mktemp)"
+cp "$SCRIPT_NAME" "$script_backup"
+trap 'rm -f "$script_backup"' EXIT
 
 echo "Repository: $repo_root"
 echo "Target:     $UPSTREAM"
@@ -66,22 +90,31 @@ echo "Resetting to $UPSTREAM..."
 git reset --hard "$UPSTREAM"
 
 echo "Cleaning untracked and ignored files..."
-git clean -fdx
+git clean -fdx -e "$SCRIPT_NAME"
 
-echo "Enforcing two-file repo contents..."
+echo "Restoring this reset script..."
+cp "$script_backup" "$SCRIPT_NAME"
+chmod +x "$SCRIPT_NAME"
+
+echo "Enforcing repository contents..."
 git ls-files -z | while IFS= read -r -d '' path; do
   case "$path" in
-    "$KEEP_A"|"$KEEP_B") ;;
+    "$KEEP_A"|"$KEEP_B"|"$SCRIPT_NAME") ;;
     *) git rm -f -- "$path" ;;
   esac
 done
 
-find . \
-  -path ./.git -prune -o \
-  -type f \
-  ! -path "./$KEEP_A" \
-  ! -path "./$KEEP_B" \
-  -print -delete
+find . -mindepth 1 -maxdepth 1 \
+  ! -name .git \
+  ! -name "$KEEP_A" \
+  ! -name "$KEEP_B" \
+  ! -name "$SCRIPT_NAME" \
+  -exec rm -rf -- {} +
+
+if ! git rev-parse --git-dir >/dev/null 2>&1; then
+  echo "Git metadata became invalid during cleanup." >&2
+  exit 1
+fi
 
 echo
 echo "Final status:"
@@ -89,7 +122,8 @@ git status --short --branch
 
 remaining_files="$(find . -path ./.git -prune -o -type f -print | sort)"
 expected_files="./$KEEP_A
-./$KEEP_B"
+./$KEEP_B
+./$SCRIPT_NAME"
 
 if [[ "$remaining_files" != "$expected_files" ]]; then
   echo "Unexpected files remain:" >&2
@@ -98,4 +132,4 @@ if [[ "$remaining_files" != "$expected_files" ]]; then
 fi
 
 echo
-echo "Done. Only $KEEP_A and $KEEP_B remain."
+echo "Done. Only .git, $KEEP_A, $KEEP_B, and $SCRIPT_NAME remain."
